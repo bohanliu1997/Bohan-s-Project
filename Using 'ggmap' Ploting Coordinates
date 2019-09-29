@@ -1,2 +1,14 @@
+library(dplyr)
 library(ggplot2)
+library(ggmap)
 
+
+##Plotting the four cities
+coordinates<-train%>%group_by(Latitude,Longitude,City)%>%summarise(count=n())
+register_google(key="YOUR ATI KEY FROM GOOGLE")
+overall<-ggmap(get_map(location =c(-90,30,-68,45),source='google',maptype="roadmap"))
+overall+geom_point(aes(x=Longitude,y=Latitude),size=0.5,col="red",data=coordinates)+
+  ggtitle("Traffic Congestion Data in Four Major Cities of United States")+
+  theme(plot.title = element_text(size = 12))+
+  xlab("Longitude")+
+  ylab("Latitude")
