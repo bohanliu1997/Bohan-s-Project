@@ -5,7 +5,7 @@ library(ggplot2)
 #########Calculating Rush Hour Traffic#########
 
 morningprimetime<-train[train$Hour%in%c(7,8,9,10),]
-afternoonprimetime<-train[train$Hour%in%c(3,4,5,6),]
+afternoonprimetime<-train[train$Hour%in%c(15,16,17,18),]
 coordinates_morning<-morningprimetime%>%group_by(Latitude,Longitude,Weekend,City)%>%summarise(avg_totaltimestopped80=mean(TotalTimeStopped_p80))
 coordinates_afternoon<-afternoonprimetime%>%group_by(Latitude,Longitude,Weekend,City)%>%summarise(avg_totaltimestopped80=mean(TotalTimeStopped_p80))
 
