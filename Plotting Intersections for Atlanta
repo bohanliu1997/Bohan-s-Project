@@ -1,0 +1,60 @@
+library(dplyr)
+library(ggmap)
+library(ggplot2)
+
+#########Calculating Rush Hour Traffic#########
+
+morningprimetime<-train[train$Hour%in%c(7,8,9,10),]
+afternoonprimetime<-train[train$Hour%in%c(3,4,5,6),]
+coordinates_morning<-morningprimetime%>%group_by(Latitude,Longitude,Weekend,City)%>%summarise(avg_totaltimestopped80=mean(TotalTimeStopped_p80))
+coordinates_afternoon<-afternoonprimetime%>%group_by(Latitude,Longitude,Weekend,City)%>%summarise(avg_totaltimestopped80=mean(TotalTimeStopped_p80))
+
+#########Plotting for the City of Atlanta#########
+
+###1.Getting the general map of Atlanta from Google map
+register_google(key="YOUR OWN API KEY FROM GOOGLE")
+Atlanta<-ggmap(get_map(location = "atlanta",zoom=12,source='google',maptype="roadmap",color="bw"))
+
+
+###2.Plotting for Weekday Morning
+atlanta_morning_weekday<-coordinates_morning[coordinates_morning$City=="Atlanta"&coordinates_morning$Weekend==0,]
+Atlanta+
+  geom_point(aes(x=Longitude,y=Latitude,col=avg_totaltimestopped80),size=2,atlanta_morning_weekday)+
+  scale_colour_distiller(palette=rev("YlOrRd"),direction=1,name="Averaged Total Stopped Time in Seconds")+
+  ggtitle("Weekday Morning 80 Percentile Average Stopped Time - Atlanta")+
+  theme(plot.title = element_text(size=20),legend.text=element_text(size=15),legend.title=element_text(size=20))+
+  xlab("Longitude")+
+  ylab("Latitude")
+
+###3.Plotting for Weekend Morning
+atlanta_morning_weekend<-coordinates_morning[coordinates_morning$City=="Atlanta"&coordinates_morning$Weekend==1,]
+Atlanta+
+  geom_point(aes(x=Longitude,y=Latitude,col=avg_totaltimestopped80),size=2,atlanta_morning_weekend)+
+  scale_colour_distiller(palette=rev("YlOrRd"),direction=1,name="Averaged Total Stopped Time in Seconds")+
+  ggtitle("Weekend Morning 80 Percentile Average Stopped Time - Atlanta")+
+  theme(plot.title = element_text(size=20),legend.text=element_text(size=15),legend.title=element_text(size=20))+
+  xlab("Longitude")+
+  ylab("Latitude")
+
+###4.Plotting for Weekday Afternoon
+atlanta_afternoon_weekday<-coordinates_afternoon[coordinates_afternoon$City=="Atlanta"&coordinates_afternoon$Weekend==0,]
+Atlanta+
+  geom_point(aes(x=Longitude,y=Latitude,col=avg_totaltimestopped80),size=2,atlanta_afternoon_weekday)+
+  scale_colour_distiller(palette=rev("YlOrRd"),direction=1,name="Averaged Total Stopped Time in Seconds")+
+  ggtitle("Weekday Afternoon 80 Percentile Average Stopped Time - Atlanta")+
+  theme(plot.title = element_text(size=20),legend.text=element_text(size=15),legend.title=element_text(size=20))+
+  xlab("Longitude")+
+  ylab("Latitude")
+
+###5.Plotting for Weekend Afternoon
+atlanta_afternoon_weekend<-coordinates_afternoon[coordinates_afternoon$City=="Atlanta"&coordinates_afternoon$Weekend==1,]
+Atlanta+
+  geom_point(aes(x=Longitude,y=Latitude,col=avg_totaltimestopped80),size=2,atlanta_afternoon_weekend)+
+  scale_colour_distiller(palette=rev("YlOrRd"),direction=1,name="Averaged Total Stopped Time in Seconds")+
+  ggtitle("Weekend Afternoon 80 Percentile Average Stopped Time - Atlanta")+
+  theme(plot.title = element_text(size=20),legend.text=element_text(size=15),legend.title=element_text(size=20))+
+  xlab("Longitude")+
+  ylab("Latitude")
+  
+  
+###Now, we have 4 nice plots for the intersection average stopped time at 80% for Weekday Morning, Weekday Afternoon, Weekend Morning and Weekend Afternoon.
