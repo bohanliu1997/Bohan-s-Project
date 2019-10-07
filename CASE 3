@@ -75,7 +75,52 @@ names(election_data_train)
 ### Question 3: Keep in mind that unsupervised learning 
 ### is used to explore the data. Feel free to consider only a subset of the 
 ### demographic variables. 
-###
+
+#Creating data frame for the particular columns to cluster on
+county <- election_data[, c(11,12,13,15,16,17,20, 21, 22, 23, 24, 25, 27, 29, 31, 33, 36, 37, 38, 40)]
+
+#Scaling the columns to standardize the values
+scale_county <- scale(county)
+scale_county <- data.frame(scale_county)
+
+#Checking to ensure standardization is appropriately performed. Standard deviation = 1 and mean is nearly 0 so our data is ready to be clustered.
+apply(scale_county, 2, sd)
+apply(scale_county, 2, mean)
+
+#Identifying the appropriate number of clusters:
+#We first obtain the AIC and BIC values for all models ranging from 1 to 100 clusters.
+kfit <- lapply(1:100, function(k) kmeans(scale_county,k))
+kfit
+kaicc <- sapply(kfit,kIC)
+kbic  <- sapply(kfit,kIC,"B")
+## Plotting AIC and BIC
+par(mar=c(1,1,1,1))
+par(mai=c(1,1,1,1))
+plot(kaicc, xlab="K", ylab="IC", 
+     ylim=range(c(kaicc,kbic)), # get them on same page
+     type="l", lwd=2)
+abline(v=which.min(kaicc))
+# Next we plot BIC
+lines(kbic, col=4, lwd=2)
+# Vertical line where BIC is minimized
+abline(v=which.min(kbic),col=4)
+
+k=37
+fit <- 1 - sum(kfit[[k]]$tot.withinss)/kfit[[k]]$totss
+paste("The goodness of fit of our clustering model is ", fit)
+
+#Generating the cluster model with 37 clusters
+countyclusters <- kmeans(scale_county,37,nstart=10)
+countyclusters$cluster
+#We can see that our clusters are of widely different sizes
+countyclusters$size
+#And here are their centers
+countyclusters$centers
+#We can combine our main election_data data frame with our clusters to help us create interesting visualizations
+election_data <- cbind(election_data, countyclusters$cluster)
+ggplot(election_data, aes(x=AgeBelow35, y=Poverty, color=factor(countyclusters$cluster))) + geom_point() + ylab("Poverty Rate (%)") + xlab("Proportion of Population Under 35") + theme(legend.position = "none") + xlim(20,80)
+ggplot(election_data, aes(x=HighSchool, y=UnemployRate, color=factor(countyclusters$cluster))) + geom_point() + xlim(50,100) + ylim(2.5,13) + theme(legend.position = "none") + xlab("Proportion of High School Graduates") + ylab("Unemployment Rate")
+
 
 ###
 ### Question 4(a) impact of changing hispanic demographic
