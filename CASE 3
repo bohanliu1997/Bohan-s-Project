@@ -64,7 +64,21 @@ names(election_data_train)
 ### Question 1: Provide a visualization (very flexible format, 
 ### it does not need to be related to the election)
 ### 
+fin.df<-subset(election_data, select=c("AgeBelow35", "Age35to65", "Age65andAbove", "White", "Black", 
+                                       "Asian", "Hispanic","HighSchool", "Bachelors", "Poverty", "IncomeAbove75K", "MedianIncome", "AverageIncome", 
+                                       "UnemployRate", "SpeakingNonEnglish", "Medicare", "MedicareRate", 
+                                       "SocialSecurityRate", "RetiredWorkers","Disabilities", 
+                                       "DisabilitiesRate", "Homeowner", "SameHouse1995and2000","Pop"))
+CorMatrix <- cor(fin.df)
+corrplot(CorMatrix, method = "square")
 
+library(ggplot2)
+
+ggplot(data=election_data, aes(x=log(TotalVote), y=DisabilitiesRate))+
+  geom_point()
+
+ggplot(data=election_data,aes(x=Region, y=TotalVote/Pop, fill=Region))+geom_boxplot()+ylim(0,0.5)+
+  ylab(label = "Percent")+ggtitle("Percentage of votes per region")+ theme(plot.title = element_text(hjust = 0.5))
 ###
 ### Question 2: Prediction. No additional script beyond the cleaning up the data
 ### provided above. (Hint: FIPS variable bahaves as an identifier for each observation
