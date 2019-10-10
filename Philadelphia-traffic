@@ -1,0 +1,14 @@
+#Creating dataset for Philadelphia
+train_philly <- train%>%filter(City=="Philadelphia")
+
+ggplot(train_philly, aes(x=TotalTimeStopped_p50)) + geom_histogram(bins=60) +xlim(-10,100) + ylab("Count") + xlab("Total Time Stopped - 50th Percentile")
+ggplot(train_philly, aes(x=TotalTimeStopped_p80)) + geom_histogram(bins=60) +xlim(-10,200) + ylab("Count") + xlab("Total Time Stopped - 80th Percentile")
+
+plot(TotalTimeStopped_p80~Hour, data=train_philly, main="Time-80th percentile",xlab='Hour', ylab='Time')
+plot(TotalTimeStopped_p50~Hour, data=train_philly, main="Time-50th percentile",xlab='Hour', ylab='Time', col=ifelse(TotalTimeStopped_p80>0,'red','red'))
+
+lm1 <- lm(TotalTimeStopped_p80~EntryStreetName+ExitStreetName+Month,train_philly)
+summary(lm1)
+
+lm2 <- lm(TotalTimeStopped_p80~Month+Hour+Weekend+Path+EntryStreetName+ExitStreetName,train_philly)
+summary(lm2)
