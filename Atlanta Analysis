@@ -60,77 +60,74 @@ for(i in 1:length(directions))
     }
   }
 }
-atlanta2<-cbind(atlanta,directions)
-
 
 ## Entry from NE
-
 for(i in 1:length(directions))
 {
-  if(train_atl$EntryHeading[i]=="NE"){
-    if(train_atl$ExitHeading[i]%in%c("NW", "N", "W")){
-    directions[i]<-"Left"
-  }else if(train_atl$ExitHeading[i]%in%c("E", "S", "SE")){
-    directions[i]<-"Right"
-    } else if(train_atl$ExitHeading[i]%in%c("NE")){
-    directions[i]<-"Straight"
+  if(atlanta$EntryHeading[i]=="NE"){
+    if(atlanta$ExitHeading[i]%in%c("NW", "N", "W")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("E", "S", "SE")){
+      directions[i]<-"Right"
+    } else if(atlanta$ExitHeading[i]%in%c("NE")){
+      directions[i]<-"Straight"
     }else {
-     directions[i]<-"Back"
-       }
+      directions[i]<-"Back"
     }
+  }
 }
 
-## Entry from NE
 
+## Entry from SW
 for(i in 1:length(directions))
 {
-  if(train_atl$EntryHeading[i]=="SW"){
-    if(train_atl$ExitHeading[i]%in%c("E", "S", "SE")){
-    directions[i]<-"Left"
-  }else if(train_atl$ExitHeading[i]%in%c("NW", "N", "W")){
-    directions[i]<-"Right"
-    } else if(train_atl$ExitHeading[i]%in%c("SW")){
-    directions[i]<-"Straight"
+  if(atlanta$EntryHeading[i]=="SW"){
+    if(atlanta$ExitHeading[i]%in%c("E", "S", "SE")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("NW", "N", "W")){
+      directions[i]<-"Right"
+    } else if(atlanta$ExitHeading[i]%in%c("SW")){
+      directions[i]<-"Straight"
     }else {
-     directions[i]<-"Back"
-       }
+      directions[i]<-"Back"
     }
+  }
 }
+
+
 
 ## Entry from SE
-
 for(i in 1:length(directions))
 {
-  if(train_atl$EntryHeading[i]=="SE"){
-    if(train_atl$ExitHeading[i]%in%c("E", "N", "NE")){
-    directions[i]<-"Left"
-  }else if(train_atl$ExitHeading[i]%in%c("W", "S", "SW")){
-    directions[i]<-"Right"
-    } else if(train_atl$ExitHeading[i]%in%c("SE")){
-    directions[i]<-"Straight"
+  if(atlanta$EntryHeading[i]=="SE"){
+    if(atlanta$ExitHeading[i]%in%c("E", "N", "NE")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("W", "S", "SW")){
+      directions[i]<-"Right"
+    } else if(atlanta$ExitHeading[i]%in%c("SE")){
+      directions[i]<-"Straight"
     }else {
-     directions[i]<-"Back"
-       }
+      directions[i]<-"Back"
     }
+  }
 }
 
 ## Entry from NW
 for(i in 1:length(directions))
 {
-  if(train_atl$EntryHeading[i]=="NW"){
-    if(train_atl$ExitHeading[i]%in%c("W", "S", "SW")){
-    directions[i]<-"Left"
-  }else if(train_atl$ExitHeading[i]%in%c("E", "N", "NE")){
-    directions[i]<-"Right"
-    } else if(train_atl$ExitHeading[i]%in%c("NW")){
-    directions[i]<-"Straight"
+  if(atlanta$EntryHeading[i]=="NW"){
+    if(atlanta$ExitHeading[i]%in%c("W", "S", "SW")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("E", "N", "NE")){
+      directions[i]<-"Right"
+    } else if(atlanta$ExitHeading[i]%in%c("NW")){
+      directions[i]<-"Straight"
     }else {
-     directions[i]<-"Back"
-       }
+      directions[i]<-"Back"
     }
+  }
 }
-
-
+atlanta2<-cbind(atlanta,directions)
 ##################################################################################################
 
 lm1 <- lm(TotalTimeStopped_p80~EntryStreetName+ExitStreetName+Month,atlanta)
