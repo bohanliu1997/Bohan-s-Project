@@ -1,0 +1,20 @@
+library(ggplot2)
+library(dplyr)
+
+train<-read.csv("train.csv")
+atlanta<-train[train$City=="Atlanta",]
+
+
+####to see if the intersection turns
+ggplot(atlanta, aes(x=TotalTimeStopped_p50)) + geom_histogram(bins=60) +xlim(-10,100) + ylab("Count") + xlab("Total Time Stopped - 50th Percentile")
+ggplot(atlanta, aes(x=TotalTimeStopped_p80)) + geom_histogram(bins=60) +xlim(-10,200) + ylab("Count") + xlab("Total Time Stopped - 80th Percentile")
+
+plot(TotalTimeStopped_p80~Hour, data=atlanta, main="Time-80th percentile",xlab='Hour', ylab='Time')
+plot(TotalTimeStopped_p50~Hour, data=atlanta, main="Time-50th percentile",xlab='Hour', ylab='Time', col=ifelse(TotalTimeStopped_p80>0,'red','red'))
+
+
+lm1 <- lm(TotalTimeStopped_p80~EntryStreetName+ExitStreetName+Month,atlanta)
+summary(lm1)
+
+lm2 <- lm(TotalTimeStopped_p80~Month+Hour+Weekend+Path+EntryStreetName+ExitStreetName,train_philly)
+summary(lm2)
