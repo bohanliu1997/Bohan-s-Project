@@ -15,7 +15,7 @@ plot(TotalTimeStopped_p50~Hour, data=atlanta, main="Time-50th percentile",xlab='
 
 ####create direction dummy 
 directions<-rep(NA,nrow(atlanta))
-
+####for entry heading N,E,W,S
 for(i in 1:length(directions))
 {
   if(atlanta$EntryHeading[i]=="E"){
