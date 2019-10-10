@@ -13,6 +13,60 @@ plot(TotalTimeStopped_p80~Hour, data=atlanta, main="Time-80th percentile",xlab='
 plot(TotalTimeStopped_p50~Hour, data=atlanta, main="Time-50th percentile",xlab='Hour', ylab='Time', col=ifelse(TotalTimeStopped_p80>0,'red','red'))
 
 
+####create direction dummy 
+directions<-rep(NA,nrow(atlanta))
+
+for(i in 1:length(directions))
+{
+  if(atlanta$EntryHeading[i]=="E"){
+    if(atlanta$ExitHeading[i]%in%c("NW","N","NE")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("SW","S","SE")){
+      directions[i]<-"Right"
+    }else if(atlanta$ExitHeading[i]=="E"){
+      directions[i]<-"Straight"
+    }else{
+      directions[i]<-"Back"
+    }
+  }else if(atlanta$EntryHeading[i]=="W"){
+    if(atlanta$ExitHeading[i]%in%c("NW","N","NE")){
+      directions[i]<-"Right"
+    }else if(atlanta$ExitHeading[i]%in%c("SW","S","SE")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]=="E"){
+      directions[i]<-"Back"
+    }else{
+      directions[i]<-"Straight"
+    }
+  }else if(atlanta$EntryHeading[i]=="S"){
+    if(atlanta$ExitHeading[i]%in%c("NW","W","SW")){
+      directions[i]<-"Right"
+    }else if(atlanta$ExitHeading[i]%in%c("NE","E","SE")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]=="N"){
+      directions[i]<-"Back"
+    }else{
+      directions[i]<-"Straight"
+    }
+  }else if(atlanta$EntryHeading[i]=="N"){
+    if(atlanta$ExitHeading[i]%in%c("NW","W","SW")){
+      directions[i]<-"Left"
+    }else if(atlanta$ExitHeading[i]%in%c("NE","E","SE")){
+      directions[i]<-"Right"
+    }else if(atlanta$ExitHeading[i]=="N"){
+      directions[i]<-"Straight"
+    }else{
+      directions[i]<-"Back"
+    }
+  }
+}
+atlanta2<-cbind(atlanta,directions)
+
+
+
+
+##################################################################################################
+
 lm1 <- lm(TotalTimeStopped_p80~EntryStreetName+ExitStreetName+Month,atlanta)
 summary(lm1)
 
