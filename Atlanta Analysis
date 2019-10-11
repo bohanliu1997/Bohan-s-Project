@@ -61,7 +61,7 @@ for(i in 1:length(directions))
   }
 }
 
-## Entry from NE
+####entry from NE
 for(i in 1:length(directions))
 {
   if(atlanta$EntryHeading[i]=="NE"){
@@ -77,8 +77,7 @@ for(i in 1:length(directions))
   }
 }
 
-
-## Entry from SW
+####entry from SW
 for(i in 1:length(directions))
 {
   if(atlanta$EntryHeading[i]=="SW"){
@@ -94,9 +93,7 @@ for(i in 1:length(directions))
   }
 }
 
-
-
-## Entry from SE
+####entry from SE
 for(i in 1:length(directions))
 {
   if(atlanta$EntryHeading[i]=="SE"){
@@ -112,7 +109,7 @@ for(i in 1:length(directions))
   }
 }
 
-## Entry from NW
+####entry from NW
 for(i in 1:length(directions))
 {
   if(atlanta$EntryHeading[i]=="NW"){
@@ -128,10 +125,81 @@ for(i in 1:length(directions))
   }
 }
 atlanta2<-cbind(atlanta,directions)
-##################################################################################################
+####plots directions 
+ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p80,fill=Directions))+
+  geom_boxplot()+
+  scale_y_continuous(limits=c(0,200))+
+  ggtitle("80 Percentile Stopped Time Across Different Directions")
 
-lm1 <- lm(TotalTimeStopped_p80~EntryStreetName+ExitStreetName+Month,atlanta)
+ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p50,fill=Directions))+
+  geom_boxplot()+
+  scale_y_continuous(limits=c(0,200))+
+  ggtitle("50 Percentile Stopped Time Across Different Directions")
+
+ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p20,fill=Directions))+
+  geom_boxplot()+
+  scale_y_continuous(limits=c(0,200))+
+  ggtitle("20 Percentile Stopped Time Across Different Directions")
+
+
+####clustering neighborhoods
+library(ggmap)
+register_google(key="YOUR OWN GOOGLE API KEY")
+coordinates<-atlanta[,c(3,4)]%>%unique()%>%as.matrix()
+
+
+####Find the best number of clusters for coordinates.
+s<-scale(coordinates)
+kfit <- lapply(1:20, function(k) kmeans(s,k))
+kaicc <- sapply(kfit,kIC)
+kbic  <- sapply(kfit,kIC,"B")
+## Plotting AIC and BIC
+par(mar=c(1,1,1,1))
+par(mai=c(1,1,1,1))
+plot(kaicc, xlab="K", ylab="IC", 
+     ylim=range(c(kaicc,kbic)), # get them on same page
+     type="l", lwd=2)
+abline(v=which.min(kaicc))
+# Next we plot BIC
+lines(kbic, col=4, lwd=2)
+# Vertical line where BIC is minimized
+abline(v=which.min(kbic),col=4)
+
+
+####plot clustering
+coordinates<-atlanta[,c(3,4)]%>%unique()%>%as.matrix()
+cluster<-kmeans(coordinates,10)
+coordinates<-cbind(coordinates,cluster$cluster)%>%as.data.frame()
+colnames(coordinates)[3]<-"Clusters"
+coordinates$Clusters<-as.factor(coordinates$Clusters)
+register_google(key="AIzaSyA4iIorGu8AEWwQLXdslT0UxYF9dSoF5oI")
+Atlanta<-ggmap(get_map(location = "atlanta",zoom=12,source='google',maptype="roadmap",color="bw"))
+Atlanta+
+  geom_point(aes(x=Longitude,y=Latitude,col=Clusters),size=2,coordinates)+
+  ggtitle("Geographical Clusters Distribution")
+
+atlanta3<-merge(atlanta2,coordinates,by=c("Latitude","Longitude"))
+atlanta3$Directions<-factor(atlanta3$Directions)
+atlanta3$Directions<-factor(atlanta3$Directions,levels(atlanta3$Directions)[c(4,2,3,1)])
+
+ggplot(atlanta3,aes(x=Clusters,y=TotalTimeStopped_p80))+geom_boxplot()+scale_y_continuous(limits=c(0,200))
+
+####initial Linear Model
+lm1 <- lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3)
 summary(lm1)
 
-lm2 <- lm(TotalTimeStopped_p80~Month+Hour+Weekend+Path+EntryStreetName+ExitStreetName,train_philly)
-summary(lm2)
+####k-fold Cross Validation
+set.seed(123)
+n <- nrow(atlanta3)
+nfold <- 10
+foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
+OOS_Rsquared<-rep(NA,10)
+### K-fold 
+for(k in 1:nfold){ 
+  train<-atlanta3[which(foldid!=k),] 
+  test<-atlanta3[which(foldid==k),]
+  reg<-lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3) 
+  pred.reg<-predict(reg,test,type="response")
+  OOS_Rsquared[k]<-R2(y=test$TotalTimeStopped_p80, pred=pred.reg)
+}
+OOS_Rsquared
