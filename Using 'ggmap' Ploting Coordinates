@@ -12,3 +12,5 @@ overall+geom_point(aes(x=Longitude,y=Latitude),size=0.5,col="red",data=coordinat
   theme(plot.title = element_text(size = 12))+
   xlab("Longitude")+
   ylab("Latitude")
+
+
