@@ -172,7 +172,7 @@ cluster<-kmeans(coordinates,10)
 coordinates<-cbind(coordinates,cluster$cluster)%>%as.data.frame()
 colnames(coordinates)[3]<-"Clusters"
 coordinates$Clusters<-as.factor(coordinates$Clusters)
-register_google(key="AIzaSyA4iIorGu8AEWwQLXdslT0UxYF9dSoF5oI")
+register_google(key="Your Own KPI")
 Atlanta<-ggmap(get_map(location = "atlanta",zoom=12,source='google',maptype="roadmap",color="bw"))
 Atlanta+
   geom_point(aes(x=Longitude,y=Latitude,col=Clusters),size=2,coordinates)+
