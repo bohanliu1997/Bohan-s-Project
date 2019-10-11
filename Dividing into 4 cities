@@ -1,5 +1,0 @@
-
-atlanta<-train[train$City=="Atlanta",]
-chicago<-train[train$City=="Chicago",]
-philadelphia<-train[train$City=="Philadelphia",]
-boston<-train[train$City=="Boston",]
