@@ -125,6 +125,8 @@ for(i in 1:length(directions))
   }
 }
 atlanta2<-cbind(atlanta,directions)
+
+
 ####plots directions 
 ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p80,fill=Directions))+
   geom_boxplot()+
