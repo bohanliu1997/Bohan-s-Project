@@ -1,133 +1,139 @@
+source("DataAnalyticsFunctions.R")
 library(ggplot2)
 library(dplyr)
 
-train<-read.csv("train.csv")
+train<-read.csv("train.csv",stringsAsFactors=F)
 atlanta<-train[train$City=="Atlanta",]
+test<-read.csv("test.csv",stringsAsFactors=F)
 
-
-####to see if the intersection turns
+####Exploratory Analysis
 ggplot(atlanta, aes(x=TotalTimeStopped_p50)) + geom_histogram(bins=60) +xlim(-10,100) + ylab("Count") + xlab("Total Time Stopped - 50th Percentile")
 ggplot(atlanta, aes(x=TotalTimeStopped_p80)) + geom_histogram(bins=60) +xlim(-10,200) + ylab("Count") + xlab("Total Time Stopped - 80th Percentile")
 
 plot(TotalTimeStopped_p80~Hour, data=atlanta, main="Time-80th percentile",xlab='Hour', ylab='Time')
 plot(TotalTimeStopped_p50~Hour, data=atlanta, main="Time-50th percentile",xlab='Hour', ylab='Time', col=ifelse(TotalTimeStopped_p80>0,'red','red'))
 
+####Check direction combinations
+check<-atlanta%>%group_by(EntryHeading,ExitHeading)%>%summarise(count=n())%>%arrange(desc(count))
+check2<-atlanta%>%group_by(EntryHeading,ExitHeading)%>%summarise(count=n())
 
-####create direction dummy 
-directions<-rep(NA,nrow(atlanta))
-####for entry heading N,E,W,S
-for(i in 1:length(directions))
+
+####Create direction dummy 
+Directions<-rep(NA,nrow(atlanta))
+
+##Entry heading N,E,W,S
+for(i in 1:length(Directions))
 {
   if(atlanta$EntryHeading[i]=="E"){
     if(atlanta$ExitHeading[i]%in%c("NW","N","NE")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("SW","S","SE")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     }else if(atlanta$ExitHeading[i]=="E"){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else{
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }else if(atlanta$EntryHeading[i]=="W"){
     if(atlanta$ExitHeading[i]%in%c("NW","N","NE")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     }else if(atlanta$ExitHeading[i]%in%c("SW","S","SE")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]=="E"){
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }else{
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }
   }else if(atlanta$EntryHeading[i]=="S"){
     if(atlanta$ExitHeading[i]%in%c("NW","W","SW")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     }else if(atlanta$ExitHeading[i]%in%c("NE","E","SE")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]=="N"){
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }else{
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }
   }else if(atlanta$EntryHeading[i]=="N"){
     if(atlanta$ExitHeading[i]%in%c("NW","W","SW")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("NE","E","SE")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     }else if(atlanta$ExitHeading[i]=="N"){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else{
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }
 }
 
-####entry from NE
-for(i in 1:length(directions))
+##Entry from NE
+for(i in 1:length(Directions))
 {
   if(atlanta$EntryHeading[i]=="NE"){
     if(atlanta$ExitHeading[i]%in%c("NW", "N", "W")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("E", "S", "SE")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     } else if(atlanta$ExitHeading[i]%in%c("NE")){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else {
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }
 }
 
-####entry from SW
-for(i in 1:length(directions))
+##Entry from SW
+for(i in 1:length(Directions))
 {
   if(atlanta$EntryHeading[i]=="SW"){
     if(atlanta$ExitHeading[i]%in%c("E", "S", "SE")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("NW", "N", "W")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     } else if(atlanta$ExitHeading[i]%in%c("SW")){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else {
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }
 }
 
-####entry from SE
-for(i in 1:length(directions))
+##Entry from SE
+for(i in 1:length(Directions))
 {
   if(atlanta$EntryHeading[i]=="SE"){
     if(atlanta$ExitHeading[i]%in%c("E", "N", "NE")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("W", "S", "SW")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     } else if(atlanta$ExitHeading[i]%in%c("SE")){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else {
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }
 }
 
-####entry from NW
-for(i in 1:length(directions))
+##Entry from NW
+for(i in 1:length(Directions))
 {
   if(atlanta$EntryHeading[i]=="NW"){
     if(atlanta$ExitHeading[i]%in%c("W", "S", "SW")){
-      directions[i]<-"Left"
+      Directions[i]<-"Left"
     }else if(atlanta$ExitHeading[i]%in%c("E", "N", "NE")){
-      directions[i]<-"Right"
+      Directions[i]<-"Right"
     } else if(atlanta$ExitHeading[i]%in%c("NW")){
-      directions[i]<-"Straight"
+      Directions[i]<-"Straight"
     }else {
-      directions[i]<-"Back"
+      Directions[i]<-"Uturn"
     }
   }
 }
-atlanta2<-cbind(atlanta,directions)
 
+atlanta2<-cbind(atlanta,Directions)
 
-####plot directions 
+##Compare Stopped Time for Directions
 ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p80,fill=Directions))+
   geom_boxplot()+
   scale_y_continuous(limits=c(0,200))+
@@ -144,7 +150,7 @@ ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p20,fill=Directions))+
   ggtitle("20 Percentile Stopped Time Across Different Directions")
 
 
-####clustering neighborhoods
+####Cluster neighborhoods
 library(ggmap)
 register_google(key="YOUR OWN GOOGLE API KEY")
 coordinates<-atlanta[,c(3,4)]%>%unique()%>%as.matrix()
@@ -168,13 +174,13 @@ lines(kbic, col=4, lwd=2)
 abline(v=which.min(kbic),col=4)
 
 
-####plot clustering
+####Plot clustering
 coordinates<-atlanta[,c(3,4)]%>%unique()%>%as.matrix()
 cluster<-kmeans(coordinates,10)
 coordinates<-cbind(coordinates,cluster$cluster)%>%as.data.frame()
 colnames(coordinates)[3]<-"Clusters"
 coordinates$Clusters<-as.factor(coordinates$Clusters)
-register_google(key="Your Own KPI")
+register_google(key="AIzaSyA4iIorGu8AEWwQLXdslT0UxYF9dSoF5oI")
 Atlanta<-ggmap(get_map(location = "atlanta",zoom=12,source='google',maptype="roadmap",color="bw"))
 Atlanta+
   geom_point(aes(x=Longitude,y=Latitude,col=Clusters),size=2,coordinates)+
@@ -186,11 +192,11 @@ atlanta3$Directions<-factor(atlanta3$Directions,levels(atlanta3$Directions)[c(4,
 
 ggplot(atlanta3,aes(x=Clusters,y=TotalTimeStopped_p80))+geom_boxplot()+scale_y_continuous(limits=c(0,200))
 
-####initial Linear Model
+####Initial Linear Model
 lm1 <- lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3)
 summary(lm1)
 
-####k-fold Cross Validation
+####K-fold Cross Validation
 set.seed(123)
 n <- nrow(atlanta3)
 nfold <- 10
@@ -205,3 +211,4 @@ for(k in 1:nfold){
   OOS_Rsquared[k]<-R2(y=test$TotalTimeStopped_p80, pred=pred.reg)
 }
 OOS_Rsquared
+
