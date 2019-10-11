@@ -133,7 +133,7 @@ for(i in 1:length(Directions))
 
 atlanta2<-cbind(atlanta,Directions)
 
-##Compare Stopped Time for Directions
+##Compare stopped time for directions
 ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p80,fill=Directions))+
   geom_boxplot()+
   scale_y_continuous(limits=c(0,200))+
@@ -192,11 +192,11 @@ atlanta3$Directions<-factor(atlanta3$Directions,levels(atlanta3$Directions)[c(4,
 
 ggplot(atlanta3,aes(x=Clusters,y=TotalTimeStopped_p80))+geom_boxplot()+scale_y_continuous(limits=c(0,200))
 
-####Initial Linear Model
+####Initial linear model
 lm1 <- lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3)
 summary(lm1)
 
-####K-fold Cross Validation
+####K-fold cross validation
 set.seed(123)
 n <- nrow(atlanta3)
 nfold <- 10
