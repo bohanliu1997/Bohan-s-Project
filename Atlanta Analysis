@@ -212,3 +212,48 @@ for(k in 1:nfold){
 }
 OOS_Rsquared
 
+###OOS Validation through K-Fold
+nfold <- 5
+n <- nrow(atlanta)
+foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
+for(k in 1:nfold){ 
+  traink <- which(foldid!=k) # train on all but fold `k'
+  
+  ## fit the regression, the tree and null model
+  model.reg <- lm(TotalTimeStopped_p80 ~ factor(Month)+factor(Hour)*Weekend+factor(cluster)*EntryHeading*Directions, atlanta,subset=traink)
+  model.tree <- rpart(TotalTimeStopped_p80 ~ factor(Month)+factor(Hour)+Weekend+factor(cluster)+EntryHeading+Directions, data=atlanta, method="anova", subset=traink)
+  model.nulll <-glm(TotalTimeStopped_p80~1, data=atlanta, subset=traink)
+  ## get predictions: type=response so we have probabilities
+  pred.reg             <- predict(model.reg, newdata=atlanta[-traink,])
+  pred.tree                 <- predict(model.tree, newdata=atlanta[-traink,])
+  pred.null <- predict(model.null, newdata=atlanta[-traink,])
+  ## calculate and log R2
+  # Reg
+  OOS$reg[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.reg)
+  OOS$reg[k]
+  # Tree
+  OOS$tree[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.tree)
+  OOS$tree[k]
+  #Null
+  OOS$null[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.null)
+  OOS$null[k]
+  #Null Model guess
+  sum(atlanta$TotalTimeStopped_p80[traink]=="Yes")/length(traink)
+  
+  ## this will print the progress (iteration that finished)
+  print(paste("Iteration",k,"of",nfold,"(thank you for your patience)"))
+}
+
+colMeans(OOS)
+
+##Creating the average model, the average of the regression and tree
+lmpredict <- predict(model.reg, atlanta)
+treepredict <- predict(model.tree, atlanta)
+lmpredict <- data.frame(lmpredict)
+treepredict <- data.frame(treepredict)
+avgpredict <- (lmpredict[,1] - treepredict[,1])/2
+atlanta$avgpredict <- avgpredict
+lmavg <- lm(TotalTimeStopped_p80~avgpredict, atlanta)
+summary(lmavg)
+
+#We note that the regression model delivers the highest out-of-sample R-squared.
