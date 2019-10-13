@@ -213,7 +213,7 @@ for(k in 1:nfold){
 OOS_Rsquared
 
 ###OOS Validation through K-Fold
-nfold <- 5
+nfold <- 10
 n <- nrow(atlanta)
 foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
 for(k in 1:nfold){ 
