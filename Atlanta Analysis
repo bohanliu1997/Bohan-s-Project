@@ -246,14 +246,4 @@ for(k in 1:nfold){
 
 colMeans(OOS)
 
-##Creating the average model, the average of the regression and tree
-lmpredict <- predict(model.reg, atlanta)
-treepredict <- predict(model.tree, atlanta)
-lmpredict <- data.frame(lmpredict)
-treepredict <- data.frame(treepredict)
-avgpredict <- (lmpredict[,1] - treepredict[,1])/2
-atlanta$avgpredict <- avgpredict
-lmavg <- lm(TotalTimeStopped_p80~avgpredict, atlanta)
-summary(lmavg)
-
 #We note that the regression model delivers the highest out-of-sample R-squared.
