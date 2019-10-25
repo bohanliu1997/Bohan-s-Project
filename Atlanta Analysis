@@ -1,24 +1,29 @@
+####DEC520Q DATA SCIENCE FOR BUSINESS-FINAL PROJECT
+####TEAM A4
+####Bohan Liu, Ansh Jain, Faris Haddad, Marieta Kuprava, Roger Shi
+
 source("DataAnalyticsFunctions.R")
 library(ggplot2)
 library(dplyr)
 
 train<-read.csv("train.csv",stringsAsFactors=F)
 atlanta<-train[train$City=="Atlanta",]
-test<-read.csv("test.csv",stringsAsFactors=F)
 
-####Exploratory Analysis
+####PART 1: Exploratory Analysis
 ggplot(atlanta, aes(x=TotalTimeStopped_p50)) + geom_histogram(bins=60) +xlim(-10,100) + ylab("Count") + xlab("Total Time Stopped - 50th Percentile")
 ggplot(atlanta, aes(x=TotalTimeStopped_p80)) + geom_histogram(bins=60) +xlim(-10,200) + ylab("Count") + xlab("Total Time Stopped - 80th Percentile")
 
 plot(TotalTimeStopped_p80~Hour, data=atlanta, main="Time-80th percentile",xlab='Hour', ylab='Time')
 plot(TotalTimeStopped_p50~Hour, data=atlanta, main="Time-50th percentile",xlab='Hour', ylab='Time', col=ifelse(TotalTimeStopped_p80>0,'red','red'))
 
+
+
+####PART 2: Data Preparation
+######################1.Create Directions######################
 ####Check direction combinations
 check<-atlanta%>%group_by(EntryHeading,ExitHeading)%>%summarise(count=n())%>%arrange(desc(count))
 check2<-atlanta%>%group_by(EntryHeading,ExitHeading)%>%summarise(count=n())
 
-
-####Create direction dummy 
 Directions<-rep(NA,nrow(atlanta))
 
 ##Entry heading N,E,W,S
@@ -133,24 +138,15 @@ for(i in 1:length(Directions))
 
 atlanta2<-cbind(atlanta,Directions)
 
-##Compare stopped time for directions
+##Plot stopped time for directions
 ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p80,fill=Directions))+
   geom_boxplot()+
   scale_y_continuous(limits=c(0,200))+
   ggtitle("80 Percentile Stopped Time Across Different Directions")
 
-ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p50,fill=Directions))+
-  geom_boxplot()+
-  scale_y_continuous(limits=c(0,200))+
-  ggtitle("50 Percentile Stopped Time Across Different Directions")
-
-ggplot(atlanta2,aes(x=Directions,y=TotalTimeStopped_p20,fill=Directions))+
-  geom_boxplot()+
-  scale_y_continuous(limits=c(0,200))+
-  ggtitle("20 Percentile Stopped Time Across Different Directions")
 
 
-####Cluster neighborhoods
+######################2.Cluster Neighborhoods######################
 library(ggmap)
 register_google(key="YOUR OWN GOOGLE API KEY")
 coordinates<-atlanta[,c(3,4)]%>%unique()%>%as.matrix()
@@ -180,7 +176,6 @@ cluster<-kmeans(coordinates,10)
 coordinates<-cbind(coordinates,cluster$cluster)%>%as.data.frame()
 colnames(coordinates)[3]<-"Clusters"
 coordinates$Clusters<-as.factor(coordinates$Clusters)
-register_google(key="AIzaSyA4iIorGu8AEWwQLXdslT0UxYF9dSoF5oI")
 Atlanta<-ggmap(get_map(location = "atlanta",zoom=12,source='google',maptype="roadmap",color="bw"))
 Atlanta+
   geom_point(aes(x=Longitude,y=Latitude,col=Clusters),size=2,coordinates)+
@@ -192,58 +187,224 @@ atlanta3$Directions<-factor(atlanta3$Directions,levels(atlanta3$Directions)[c(4,
 
 ggplot(atlanta3,aes(x=Clusters,y=TotalTimeStopped_p80))+geom_boxplot()+scale_y_continuous(limits=c(0,200))
 
-####Initial linear model
-lm1 <- lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3)
-summary(lm1)
 
-####K-fold cross validation
+###############3.Network Analysis Centrality Measures##################
+library(igraph)
+library(network)
+library(stringr)
+library(dplyr)
+
+street<-atlanta3[,c(5,6)]%>%unique()%>%as.matrix()
+street[street==''] <- NA
+street2<-na.omit(street)
+street_network<- graph.edgelist(street2, directed=FALSE)
+street_network <- simplify(street_network)
+#plot(street_network, edge.width=2)
+#V(street_network)
+##degrees
+degrees<-degree(street_network)%>%sort(.,decreasing = T)%>%as.matrix()%>%as.data.frame()
+degrees$streetname<-rownames(degrees)
+rownames(degrees)<-1:nrow(degrees)
+colnames(degrees)[1]<-"degrees"
+##betweenness
+betweenness<-betweenness(street_network)%>%sort(.,decreasing = T)%>%as.matrix()%>%as.data.frame()
+betweenness$streetname<-rownames(betweenness)
+rownames(betweenness)<-1:nrow(betweenness)
+colnames(betweenness)[1]<-"betweenness"
+##closeness
+closeness<-closeness(street_network)%>%sort(.,decreasing = T)%>%as.matrix()%>%as.data.frame()
+closeness$streetname<-rownames(closeness)
+rownames(closeness)<-1:nrow(closeness)
+colnames(closeness)[1]<-"closeness"
+
+
+centrality<-merge(degrees,betweenness,by="streetname")
+centrality<-merge(centrality,closeness,by="streetname")
+
+Entry<-centrality
+colnames(Entry)[1]<-"EntryStreetName"
+Exit<-centrality
+colnames(Exit)[1]<-"ExitStreetName"
+
+atlanta4<-merge(atlanta3,Entry,by="EntryStreetName")
+atlanta5<-merge(atlanta4,Exit,by="ExitStreetName")
+colnames(atlanta5)[31:33]<-c("EntryDegrees","EntryBetweenness","EntryCloseness")
+colnames(atlanta5)[34:36]<-c("ExitDegrees","ExitBetweenness","ExitCloseness")
+
+####Plot only the nodes with degree more than 5
+street2<-as.data.frame(street2)
+degreemorethan5<-degrees[degrees$degrees>5,]
+street3<-street2[street2$EntryStreetName%in%degreemorethan5$streetname&
+                   street2$ExitStreetName%in%degreemorethan5$streetname,]
+street4<-as.matrix(street3)
+street_network2<- graph.edgelist(street4, directed=FALSE)
+street_network2<- simplify(street_network2)
+plot(street_network2, edge.width=2,vertex.size = 4,vertex.label.dist =1,vertex.label.cex = 0.7,main="Streets with Degrees Greater Than 5")
+
+
+
+####PART 3: Modeling 
+####Our final data set for modeling:
+dim(atlanta5)
+
+####1.Multivariable Linear Regression Model
+model.lm<-lm(TotalTimeStopped_p80~factor(Month)+
+                factor(Hour)*factor(Weekend)+
+                factor(Clusters)*EntryHeading*Directions+
+                EntryDegrees+EntryBetweenness+EntryCloseness+
+                ExitDegrees+ExitBetweenness+ExitCloseness,atlanta5)
+summary(model.lm)
+
+##check assumptions
+plot(model.lm)
+
+##plot feature importance
+Importance.lm<-anova(model.lm)%>%as.data.frame()
+Importance.lm$Features<-rownames(Importance.lm)
+rownames(Importance.lm)<-1:nrow(Importance.lm)
+Importance.lm2<-Importance.lm[-18,c(6,2)]
+library(stringr)
+Importance.lm2$Features<-str_remove_all(Importance.lm2$Features,"factor")
+Importance.lm2$Features<-str_remove_all(Importance.lm2$Features,"\\(")
+Importance.lm2$Features<-str_remove_all(Importance.lm2$Features,"\\)")
+colnames(Importance.lm2)[2]<-"Sum_of_Squares"
+Importance.lm3<-Importance.lm2[order(Importance.lm2$Sum_of_Squares,decreasing=T),]
+Importance.lm3<-Importance.lm3[1:10,]
+
+options(scipen=10000)
+ggplot(Importance.lm3,aes(x=Features,y=Sum_of_Squares,fill=rainbow(10)))+
+  geom_bar(stat="identity")+
+  theme(legend.position = "none",
+        axis.text.x = element_text(size=7,face="bold"),
+        axis.title=element_text(size=14,face="bold"),
+        plot.title=element_text(size=20,face="bold"))+
+  ggtitle("Feature Importance in Linear Model")
+
+####2.Classification and Regression Tree
+library(rpart)
+library(rpart.plot)
+model.cart<-rpart(TotalTimeStopped_p80~factor(Month)+factor(Hour)+
+                    factor(Weekend)+factor(Clusters)+EntryHeading+Directions+
+                    EntryDegrees+EntryBetweenness+EntryCloseness+
+                    ExitDegrees+ExitBetweenness+ExitCloseness
+                    ,data=atlanta5, method="anova")
+summary(model.cart)
+fitted.cart<-predict(model.cart)
+R2.cart<-var(fitted.cart)/var(atlanta5$TotalTimeStopped_p80)
+R2.cart
+####tree plot
+rpart.plot(model.cart)
+
+##plot feature importance
+Importance.cart<-model.cart$variable.importance%>%as.data.frame()
+Importance.cart$Features<-rownames(Importance.cart)
+colnames(Importance.cart)[1]<-"Importance"
+rownames(Importance.cart)<-1:nrow(Importance.cart)
+Importance.cart$Features<-str_remove_all(Importance.cart$Features,"factor")
+Importance.cart$Features<-str_remove_all(Importance.cart$Features,"\\(")
+Importance.cart$Features<-str_remove_all(Importance.cart$Features,"\\)")
+options(scipen=10000)
+ggplot(Importance.cart,aes(x=Features,y=Importance,fill=rainbow(11)))+
+  geom_bar(stat="identity")+
+  theme(legend.position = "none",
+        axis.text.x = element_text(size=11,face="bold"),
+        axis.title=element_text(size=14,face="bold"),
+        plot.title=element_text(size=20,face="bold"))+
+  ggtitle("Feature Importance in CART Model")
+
+
+####3.Random Forest
+library(randomForest)
 set.seed(123)
-n <- nrow(atlanta3)
-nfold <- 10
-foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
-OOS_Rsquared<-rep(NA,10)
-### K-fold 
-for(k in 1:nfold){ 
-  train<-atlanta3[which(foldid!=k),] 
-  test<-atlanta3[which(foldid==k),]
-  reg<-lm(TotalTimeStopped_p80~Clusters+Clusters*ExitHeading+Directions+ExitHeading*as.factor(Hour)+as.factor(Hour)+as.factor(Weekend)+as.factor(Hour)*as.factor(Weekend)+as.factor(Month),atlanta3) 
-  pred.reg<-predict(reg,test,type="response")
-  OOS_Rsquared[k]<-R2(y=test$TotalTimeStopped_p80, pred=pred.reg)
-}
-OOS_Rsquared
+model.rf<-randomForest(TotalTimeStopped_p80~Month+Hour+Weekend+Clusters+
+                         EntryDegrees+EntryBetweenness+EntryCloseness+ExitDegrees+
+                         ExitBetweenness+ExitCloseness,data=atlanta5,
+                       nodesize=5, ntree = 10, mtry = 4)
+summary(model.rf)
+fitted.rf<-model.rf$predicted
+R2.rf<-var(fitted.rf,na.rm = T)/var(atlanta5$TotalTimeStopped_p80)
+R2.rf
+##plot feature importance
+Importance.rf<-model.rf$importance%>%as.data.frame()
+Importance.rf$Features<-rownames(Importance.rf)
+colnames(Importance.rf)[1]<-"Importance"
+rownames(Importance.rf)<-1:nrow(Importance.rf)
+options(scipen=10000)
+ggplot(Importance.rf,aes(x=Features,y=Importance,fill=rainbow(10)))+
+  geom_bar(stat="identity")+
+  theme(legend.position = "none",
+        axis.text.x = element_text(size=12,face="bold"),
+        axis.title=element_text(size=14,face="bold"),
+        plot.title=element_text(size=20,face="bold"))+
+  ggtitle("Feature Importance in Random Forest Model")
 
-###OOS Validation through K-Fold
+####PART 4: OOS Validation 
+####Kfold for lm, cart and null
+set.seed(123)
 nfold <- 10
-n <- nrow(atlanta)
+n <- nrow(atlanta5)
 foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
+OOS <- data.frame(lm=rep(NA, nfold), cart=rep(NA, nfold), null=rep(NA, nfold))
+
 for(k in 1:nfold){ 
   traink <- which(foldid!=k) # train on all but fold `k'
-  
   ## fit the regression, the tree and null model
-  model.reg <- lm(TotalTimeStopped_p80 ~ factor(Month)+factor(Hour)*Weekend+factor(cluster)*EntryHeading*Directions, atlanta,subset=traink)
-  model.tree <- rpart(TotalTimeStopped_p80 ~ factor(Month)+factor(Hour)+Weekend+factor(cluster)+EntryHeading+Directions, data=atlanta, method="anova", subset=traink)
-  model.nulll <-glm(TotalTimeStopped_p80~1, data=atlanta, subset=traink)
+  modelk.lm <- lm(TotalTimeStopped_p80~factor(Month)+
+                   factor(Hour)*factor(Weekend)+
+                   factor(Clusters)*EntryHeading*Directions+
+                   EntryDegrees+EntryBetweenness+EntryCloseness+
+                   ExitDegrees+ExitBetweenness+ExitCloseness,atlanta5,subset=traink)
+  modelk.cart <- rpart(TotalTimeStopped_p80~factor(Month)+factor(Hour)+
+                        factor(Weekend)+factor(Clusters)+EntryHeading+Directions+
+                        EntryDegrees+EntryBetweenness+EntryCloseness+
+                        ExitDegrees+ExitBetweenness+ExitCloseness
+                      ,data=atlanta5, method="anova",subset=traink)
+  modelk.null <-glm(TotalTimeStopped_p80~1, data=atlanta5, subset=traink)
   ## get predictions: type=response so we have probabilities
-  pred.reg             <- predict(model.reg, newdata=atlanta[-traink,])
-  pred.tree                 <- predict(model.tree, newdata=atlanta[-traink,])
-  pred.null <- predict(model.null, newdata=atlanta[-traink,])
+  predk.lm<- predict(modelk.lm, newdata=atlanta5[-traink,])
+  predk.cart<- predict(modelk.cart, newdata=atlanta5[-traink,])
+  predk.null<- predict(modelk.null, newdata=atlanta5[-traink,])
   ## calculate and log R2
   # Reg
-  OOS$reg[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.reg)
-  OOS$reg[k]
+  OOS$lm[k] <- R2(y=atlanta5$TotalTimeStopped_p80[-traink], pred=predk.lm)
+  OOS$lm[k]
   # Tree
-  OOS$tree[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.tree)
-  OOS$tree[k]
+  OOS$cart[k] <- R2(y=atlanta5$TotalTimeStopped_p80[-traink], pred=predk.cart)
+  OOS$cart[k]
   #Null
-  OOS$null[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=pred.null)
+  OOS$null[k] <- R2(y=atlanta$TotalTimeStopped_p80[-traink], pred=predk.null)
   OOS$null[k]
   #Null Model guess
-  sum(atlanta$TotalTimeStopped_p80[traink]=="Yes")/length(traink)
-  
+  sum(atlanta5$TotalTimeStopped_p80[traink]=="Yes")/length(traink)
   ## this will print the progress (iteration that finished)
   print(paste("Iteration",k,"of",nfold,"(thank you for your patience)"))
 }
 
-colMeans(OOS)
 
-#We note that the regression model delivers the highest out-of-sample R-squared.
+####Kfold for random forest
+set.seed(123)
+nfold <- 10
+n <- nrow(atlanta5)
+foldid <- rep(1:nfold,each=ceiling(n/nfold))[sample(1:n)]
+OOS_rf<-rep(NA,nfold)
+
+
+for(k in 1:nfold){ 
+  traink <- atlanta5[which(foldid!=k),]
+  testk<-atlanta5[which(foldid==k),]
+  modelk.rf<-randomForest(TotalTimeStopped_p80~Month+Hour+Weekend+Clusters+
+                            EntryDegrees+EntryBetweenness+EntryCloseness+ExitDegrees+
+                            ExitBetweenness+ExitCloseness,data=traink,
+                          nodesize=5, ntree = 10, mtry = 4)
+
+  predk.rf<- predict(modelk.rf, newdata=testk)
+  OOS_rf[k]<-var(predk.rf,na.rm = T)/var(testk$TotalTimeStopped_p80)
+  print(paste("Iteration",k,"of",nfold,"(thank you for your patience)"))
+}
+
+####Compare and plot 10-Fold
+OOS<-cbind(OOS,OOS_rf)
+colnames(OOS)<-c("LM","CART","NULL","RANDOM FOREST")
+colMeans(OOS)
+boxplot(OOS, col="plum", ylab=expression(paste("OOS ",R^2)), xlab="", main="10-fold Cross Validation")
+
